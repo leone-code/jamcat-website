@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Light Control</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #353636; /* Tailwind's gray-100 */
+        }
+        .traffic-light-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 50px;
+            flex-direction: column;
+        }
+        .light {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 10px;
+            opacity: 0.3; /* Dim lights initially */
+            transition: opacity 0.5s ease-in-out;
+        }
+        .light.red { background-color: #f50606; } /* Tailwind's red-600 */
+        .light.yellow { background-color: #f59e0b; } /* Tailwind's yellow-500 */
+        .light.green { background-color: #06f7a6; } /* Tailwind's green-600 */
+        .light.red.active, .light.yellow.active, .light.green.active {
+            opacity: 1; /* Brighten active light */
+        }
+        .input-section {
+            max-width: 400px;
+            margin: auto;
+        }
+        .message-box {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #fff; /* White background for message box */
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .footer-note {
+            text-align: center;
+            margin-top: 20px;
+            color: #6b7280; /* Tailwind's gray-500 */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>AI Traffic Simulation</h1>
+
+    <div class="traffic-light-container">
+        <div id="redLight" class="light red"></div>
+        <div id="yellowLight" class="light yellow"></div>
+        <div id="greenLight" class="light green"></div>
+    </div>
+
+    <div class="input-section bg-white p-6 rounded-lg shadow-md mt-8">
+        <label for="carCountInput" class="text-lg font-medium text-gray-700 mb-2">Enter Car Count:</label>
+        <input type="number" id="carCountInput" value="15" min="0" class="mb-4">
+        <button onclick="applyTrafficLogic()">Update Traffic Light</button>
+    </div>
+
+    <div id="messageBox" class="message-box">
+        Enter car count and click "Update Traffic Light".
+    </div>
+
+    <p class="footer-note">
+        This simulation uses a simple car count to determine traffic light behavior.
+    </p>
+
+    <script>
+        // Get light elements
+        const redLight = document.getElementById('redLight');
+        const yellowLight = document.getElementById('yellowLight');
+        const greenLight = document.getElementById('greenLight');
+        const messageBox = document.getElementById('messageBox');
+
+        // Traffic light state and durations
+        let currentState = "red";
+        const lightDurations = {
+            red: 10000,   // 10 seconds
+            yellow: 3000, // 3 seconds
+            green: 15000  // 15 seconds
+        };
+        let currentGreenDuration = lightDurations.green; // Current green duration, can be extended
+
+        // Timeout ID to clear existing transitions
+        let currentTimeoutId = null;
+
+        /**
+         * Updates the visual state of the traffic lights.
+         * @param {string} state - The new state ("red", "yellow", "green").
+         */
+        function updateLightDisplay(state) {
+            redLight.classList.remove('red');
+            yellowLight.classList.remove('yellow');
+            greenLight.classList.remove('green');
+
+            if (state === "red") {
+                redLight.classList.add('red');
+            } else if (state === "yellow") {
+                yellowLight.classList.add('yellow');
+            } else if (state === "green") {
+                greenLight.classList.add('green');
+            }
+            currentState = state;
+            console.log(`Traffic Light is now: ${state.toUpperCase()}`);
+            showMessage(`Traffic Light is now: <span class="font-bold uppercase text-${state === 'red' ? 'red-600' : state === 'yellow' ? 'yellow-500' : 'green-600'}">${state}</span>`);
+        }
+
+        /**
+         * Displays a message in the message box.
+         * @param {string} message - The message to display (can contain HTML).
+         */
+        function showMessage(message) {
+            messageBox.innerHTML = message;
+        }
+
+        /**
+         * Simulates a full traffic light cycle (green -> yellow -> red -> ...).
+         * This function will recursively call itself to continue the cycle.
+         */
+        function startCycle() {
+            if (currentTimeoutId) {
+                clearTimeout(currentTimeoutId); // Clear any pending transitions
+            }
+
+            // Start with Green
+            updateLightDisplay("green");
+            console.log(`Green for ${currentGreenDuration / 1000} seconds.`);
+            showMessage(`Green light for <span class="font-bold text-green-600">${currentGreenDuration / 1000}s</span>`);
+
+            currentTimeoutId = setTimeout(() => {
+                // Then Yellow
+                updateLightDisplay("yellow");
+                console.log(`Yellow for ${lightDurations.yellow / 1000} seconds.`);
+                showMessage(`Yellow light for <span class="font-bold text-yellow-500">${lightDurations.yellow / 1000}s</span>`);
+
+                currentTimeoutId = setTimeout(() => {
+                    // Then Red
+                    updateLightDisplay("red");
+                    console.log(`Red for ${lightDurations.red / 1000} seconds.`);
+                    showMessage(`Red light for <span class="font-bold text-red-600">${lightDurations.red / 1000}s</span>`);
+
+                    currentTimeoutId = setTimeout(() => {
+                        // Reset green duration for next cycle before starting over
+                        currentGreenDuration = lightDurations.green;
+                        startCycle(); // Loop back to green
+                    }, lightDurations.red);
+                }, lightDurations.yellow);
+            }, currentGreenDuration);
+        }
+
+        /**
+         * Extends the current green light duration.
+         * @param {number} additionalTimeMs - Additional time in milliseconds to add to green.
+         */
+        function extendGreenLight(additionalTimeMs) {
+            if (currentState === "green") {
+                currentGreenDuration += additionalTimeMs;
+                console.log(`Green light extended by ${additionalTimeMs / 1000} seconds.`);
+                showMessage(`Green light extended by <span class="font-bold text-green-600">${additionalTimeMs / 1000}s</span>!`);
+                // If it's already green, clear the current timeout and restart the green phase with new duration
+                if (currentTimeoutId) {
+                    clearTimeout(currentTimeoutId);
+                }
+                startCycle(); // Restart the cycle with the extended green
+            } else {
+                console.log("Cannot extend green light, not currently green.");
+                showMessage("Cannot extend green light, not currently green.");
+            }
+        }
+
+        /**
+         * Controls the traffic light state based on car count.
+         */
+        function applyTrafficLogic() {
+            const carCountInput = document.getElementById('carCountInput');
+            const carCount = parseInt(carCountInput.value, 10);
+
+            if (isNaN(carCount) || carCount < 0) {
+                showMessage("<span class='text-red-500 font-bold'>Please enter a valid number of cars (0 or more).</span>");
+                return;
+            }
+
+            console.log(`\nChecking traffic: ${carCount} cars detected.`);
+            showMessage(`Checking traffic: <span class="font-bold">${carCount}</span> cars detected.`);
+
+            if (carCount > 20) {
+                // If car count is high, extend the green light
+                if (currentState !== "green") {
+                    updateLightDisplay("green"); // Ensure it's green before extending
+                    // Give a moment for the display to update before extending if it just turned green
+                    setTimeout(() => extendGreenLight(7000), 100); // Extend by 7 seconds (7000ms)
+                } else {
+                    extendGreenLight(7000); // Extend by 7 seconds (7000ms)
+                }
+            } else {
+                // Otherwise, switch to red
+                console.log("Car count is low or normal, preparing to switch to red."); // FIX: Changed console to console.log
+                showMessage("Car count is low or normal, preparing to switch to red.");
+
+                if (currentState === "green") {
+                    // If currently green, transition through yellow to red
+                    if (currentTimeoutId) {
+                        clearTimeout(currentTimeoutId);
+                    }
+                    updateLightDisplay("yellow");
+                    console.log(`Transitioning to yellow for ${lightDurations.yellow / 1000} seconds.`);
+                    showMessage(`Transitioning to <span class="font-bold text-yellow-500">yellow</span> for ${lightDurations.yellow / 1000}s.`);
+
+                    currentTimeoutId = setTimeout(() => {
+                        updateLightDisplay("red");
+                        console.log(`Now red for ${lightDurations.red / 1000} seconds.`);
+                        showMessage(`Now <span class="font-bold text-red-600">red</span> for ${lightDurations.red / 1000}s.`);
+                        currentTimeoutId = setTimeout(() => {
+                            currentGreenDuration = lightDurations.green; // Reset for next cycle
+                            startCycle(); // Start a normal cycle from red
+                        }, lightDurations.red);
+                    }, lightDurations.yellow);
+                } else if (currentState === "yellow") {
+                     // If currently yellow, just proceed to red
+                     if (currentTimeoutId) {
+                        clearTimeout(currentTimeoutId);
+                    }
+                    updateLightDisplay("red");
+                    console.log(`Now red for ${lightDurations.red / 1000} seconds.`);
+                    showMessage(`Now <span class="font-bold text-red-600">red</span> for ${lightDurations.red / 1000}s.`);
+                    currentTimeoutId = setTimeout(() => {
+                        currentGreenDuration = lightDurations.green; // Reset for next cycle
+                        startCycle(); // Start a normal cycle from red
+                    }, lightDurations.red);
+                } else {
+                    // If already red, just keep it red and start a normal cycle
+                    console.log("Already red, maintaining red state and starting a normal cycle.");
+                    startCycle(); // Ensure a normal cycle starts even if already red
+                }
+            }
+        }
+
+        // Initialize the traffic light display when the page loads
+        window.onload = function() {
+            updateLightDisplay("red"); // Start with red
+            // Initial message
+            showMessage("Enter car count and click \"Update Traffic Light\".");
+        };
+    </script>
+</body>
+</html>
